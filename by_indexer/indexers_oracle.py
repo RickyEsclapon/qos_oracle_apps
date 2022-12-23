@@ -204,6 +204,8 @@ if time_interval == '1 hour':
       hover_name="subgraph")
     # fig.update_layout(showlegend=False)
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    # table
+    st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).query_count.sum().reset_index(name=col_viz))
   elif col_viz == 'total_query_fees':
     # visualize
     fig = px.line(
@@ -215,6 +217,8 @@ if time_interval == '1 hour':
       hover_name="subgraph")
     # fig.update_layout(showlegend=False)
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    # table
+    st.dataframe(data_viz.groupby([data_viz['hour'], 'subgraph']).total_query_fees.sum().reset_index(name=col_viz))
   elif col_viz == 'num_indexer_200_responses':
     # visualize
     fig = px.line(
@@ -226,6 +230,8 @@ if time_interval == '1 hour':
       hover_name="subgraph")
     # fig.update_layout(showlegend=False)
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    # table
+    st.dataframe(data_viz.groupby([data_viz['hour'], 'subgraph']).num_indexer_200_responses.sum().reset_index(name=col_viz))
   elif col_viz == 'max_indexer_blocks_behind':
     # visualize
     fig = px.line(
@@ -237,6 +243,8 @@ if time_interval == '1 hour':
       hover_name="subgraph")
     # fig.update_layout(showlegend=False)
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    # table
+    st.dataframe(data_viz.groupby([data_viz['hour'], 'subgraph']).max_indexer_blocks_behind.max().reset_index(name=col_viz))
   elif col_viz == 'max_indexer_latency':
     # visualize
     fig = px.line(
@@ -248,6 +256,8 @@ if time_interval == '1 hour':
       hover_name="subgraph")
     # fig.update_layout(showlegend=False)
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    # table
+    st.dataframe(data_viz.groupby([data_viz['hour'], 'subgraph']).max_indexer_latency.max().reset_index(name=col_viz))
   elif col_viz == 'max_query_fee':
     # visualize
     fig = px.line(
@@ -259,6 +269,8 @@ if time_interval == '1 hour':
       hover_name="subgraph")
     # fig.update_layout(showlegend=False)
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    # table
+    st.dataframe(data_viz.groupby([data_viz['hour'], 'subgraph']).max_query_fee.max().reset_index(name=col_viz))
   else:
     st.write('still adding')
 
