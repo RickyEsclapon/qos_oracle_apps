@@ -1,0 +1,7 @@
+streamlit
+pandas
+numpy
+requests
+json
+streamlit_autorefresh
+plotly.express
