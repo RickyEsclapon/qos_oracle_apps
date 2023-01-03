@@ -9,7 +9,7 @@ import plotly.express as px
 # Automatically refresh app every 5 minutes - stops after 25 times
 count = st_autorefresh(interval=300000, limit=25, key="fizzbuzzcounter")
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def get_subgraph_info(total_rows):
     # Initialize an empty list to store the results
     results = []
@@ -20,10 +20,21 @@ def get_subgraph_info(total_rows):
         # Set the GraphQL query
         query = '''
         query {
-          subgraphDeployments(first: 1000, skip: ''' + str(i*1000) + ''') {
-            ipfsHash
-            originalName
+          subgraphs(
+            where: {active: true}
+            first: 1000
+            orderBy: signalledTokens
+            orderDirection: desc
+            skip: ''' + str(i*1000) + '''
+          ) {
+            displayName
             signalledTokens
+            creatorAddress
+            versions(first: 1, orderBy: createdAt, orderDirection: desc) {
+              subgraphDeployment {
+                ipfsHash
+              }
+            }
           }
         }
         '''
@@ -33,7 +44,7 @@ def get_subgraph_info(total_rows):
         json_data = json.loads(r.text)
         # st.write(json_data)
         # Convert json into a dataframe
-        df = pd.DataFrame(json_data['data']['subgraphDeployments'])
+        df = pd.DataFrame(json_data['data']['subgraphs'])
         # Add the dataframe to the list
         results.append(df)
     # Union the dataframes into a single dataframe
@@ -41,8 +52,16 @@ def get_subgraph_info(total_rows):
     # Return the results
     return df
 # pull subgraphs info
-subgraphs_info = get_subgraph_info(2000)
+subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
 
+# Iterate through the data and extract the ipfsHash values
+ipfs_hash_values = []
+for i in subgraphs_info.index:
+  ipfs_hash_values.append(subgraphs_info['versions'][i][0]['subgraphDeployment']['ipfsHash'])
+# Set the ipfsHash values as a new column in the data structure
+subgraphs_info['ipfsHash'] = ipfs_hash_values
+# Drop the versions column
+del subgraphs_info['versions']
 
 # Markdown title
 st.title('Gateway QoS Oracle by Indexer')
@@ -127,7 +146,7 @@ df = pd.concat(df_list)
 # Join subgraphs_info into new data
 df = pd.merge(left=df, right=subgraphs_info, left_on='subgraph_deployment_ipfs_hash', right_on='ipfsHash', how='inner')
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-df['subgraph'] = df['originalName'].where(df['originalName'].notnull(), df['subgraph_deployment_ipfs_hash'])
+df['subgraph'] = df['displayName'].where(df['displayName'].notnull(), df['subgraph_deployment_ipfs_hash'])
 
 # show data (only if data is less than 15k rows)
 if df.shape[0] < 15000:

@@ -20,10 +20,21 @@ def get_subgraph_info(total_rows):
         # Set the GraphQL query
         query = '''
         query {
-          subgraphDeployments(first: 1000, skip: ''' + str(i*1000) + ''') {
-            ipfsHash
-            originalName
+          subgraphs(
+            where: {active: true}
+            first: 1000
+            orderBy: signalledTokens
+            orderDirection: desc
+            skip: ''' + str(i*1000) + '''
+          ) {
+            displayName
             signalledTokens
+            creatorAddress
+            versions(first: 1, orderBy: createdAt, orderDirection: desc) {
+              subgraphDeployment {
+                ipfsHash
+              }
+            }
           }
         }
         '''
@@ -33,7 +44,7 @@ def get_subgraph_info(total_rows):
         json_data = json.loads(r.text)
         # st.write(json_data)
         # Convert json into a dataframe
-        df = pd.DataFrame(json_data['data']['subgraphDeployments'])
+        df = pd.DataFrame(json_data['data']['subgraphs'])
         # Add the dataframe to the list
         results.append(df)
     # Union the dataframes into a single dataframe
@@ -41,19 +52,28 @@ def get_subgraph_info(total_rows):
     # Return the results
     return df
 # pull subgraphs info
-subgraphs_info = get_subgraph_info(2000)
+subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
+
+# Iterate through the data and extract the ipfsHash values
+ipfs_hash_values = []
+for i in subgraphs_info.index:
+  ipfs_hash_values.append(subgraphs_info['versions'][i][0]['subgraphDeployment']['ipfsHash'])
+# Set the ipfsHash values as a new column in the data structure
+subgraphs_info['ipfsHash'] = ipfs_hash_values
+# Drop the versions column
+del subgraphs_info['versions']
 
 # Markdown title
 st.title('Gateway QoS Oracle by Subgraph')
 
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-subgraphs_info['subgraph'] = subgraphs_info['originalName'].where(subgraphs_info['originalName'].notnull(), subgraphs_info['ipfsHash'])
+subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info['displayName'].notnull(), subgraphs_info['ipfsHash'])
 
 # find index of datanexus as default example for selection
-default_subgraph = int(subgraphs_info["subgraph"].str.find("poap-mainnet")[lambda x : x != -1].index[0])
+#default_subgraph = int(subgraphs_info["subgraph"].str.find("POAP Ethereum Mainnet")[lambda x : x != -1].index[0])
 # choose indexer
 with st.sidebar:
-  subgraph_sel = st.selectbox('Select Subgraph',subgraphs_info['subgraph'], index = default_subgraph)
+  subgraph_sel = st.selectbox('Select Subgraph',subgraphs_info['subgraph'], index = 0)
   # number of rows to pull user input
   nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 10000, 1000)
 
@@ -116,7 +136,7 @@ df = pd.concat(df_list)
 # Join subgraphs_info into new data
 df = pd.merge(left=df, right=subgraphs_info, left_on='subgraph_deployment_ipfs_hash', right_on='ipfsHash', how='inner')
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-df['subgraph'] = df['originalName'].where(df['originalName'].notnull(), df['subgraph_deployment_ipfs_hash'])
+df['subgraph'] = df['displayName'].where(df['displayName'].notnull(), df['subgraph_deployment_ipfs_hash'])
 
 # show data (only if data is less than 15k rows)
 if df.shape[0] < 15000:
@@ -132,9 +152,9 @@ def convert_df(df):
 csv = convert_df(df)
 # show button
 st.download_button(
-    label="Download full data as CSV",
+    label="Download data as CSV",
     data=csv,
-    file_name='indexer_data.csv',
+    file_name='subgraph_indexer_data.csv',
     mime='text/csv',
 )
 
@@ -146,9 +166,8 @@ with st.sidebar:
                           'max_query_fee','num_indexer_200_responses','proportion_indexer_200_responses',
                           'query_count',#'stdev_indexer_latency_ms',
                           'total_query_fees'))
-# time interval
-with st.sidebar:
-  time_interval = st.selectbox('Choose a time interval for visualization', ('1 hour', '5 minutes'))
+  # time interval
+  time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
@@ -157,7 +176,7 @@ df[col_viz] = pd.to_numeric(df[col_viz])
 if time_interval == '5 minutes':
   st.write("5 minute interval data of `" + col_viz + "` for subgraph `" + subgraph_sel + "`")
   # Visualize data (5 min interval)
-  fig = px.area(
+  fig = px.line(
       df,
       x="date",
       y=col_viz,
@@ -187,7 +206,7 @@ if time_interval == '1 hour':
   # apply proper transformation based on variable of choice
   if col_viz == 'query_count':
     # visualize
-    fig = px.area(
+    fig = px.line(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).query_count.sum().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -200,7 +219,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).query_count.sum().reset_index(name=col_viz))
   elif col_viz == 'total_query_fees':
     # visualize
-    fig = px.area(
+    fig = px.line(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).total_query_fees.sum().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -213,7 +232,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).total_query_fees.sum().reset_index(name=col_viz))
   elif col_viz == 'num_indexer_200_responses':
     # visualize
-    fig = px.area(
+    fig = px.line(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).num_indexer_200_responses.sum().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -226,7 +245,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).num_indexer_200_responses.sum().reset_index(name=col_viz))
   elif col_viz == 'max_indexer_blocks_behind':
     # visualize
-    fig = px.area(
+    fig = px.line(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_blocks_behind.max().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -239,7 +258,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_blocks_behind.max().reset_index(name=col_viz))
   elif col_viz == 'max_indexer_latency':
     # visualize
-    fig = px.area(
+    fig = px.line(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_latency.max().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -252,7 +271,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_latency.max().reset_index(name=col_viz))
   elif col_viz == 'max_query_fee':
     # visualize
-    fig = px.area(
+    fig = px.line(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).max_query_fee.max().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
