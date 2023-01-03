@@ -164,19 +164,21 @@ with st.sidebar:
                           ('query_count','avg_indexer_blocks_behind','avg_indexer_latency_ms',
                           'avg_query_fee','max_indexer_blocks_behind','max_indexer_latency_ms',
                           'max_query_fee','num_indexer_200_responses','proportion_indexer_200_responses',
-                          'query_count',#'stdev_indexer_latency_ms',
+                          #'query_count',#'stdev_indexer_latency_ms',
                           'total_query_fees'))
   # time interval
   time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
+  # chart type
+  chart_type = st.selectbox('Choose chart type', ('line', 'bar', 'area', 'scatter', 'pie'))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
 
 # 5 minute interval data
-if time_interval == '5 minutes':
-  st.write("5 minute interval data of `" + col_viz + "` for subgraph `" + subgraph_sel + "`")
+if time_interval == '5 minutes' and chart_type != 'pie':
+  st.write("5 minute interval data of `" + col_viz + "` for subgraph `" + subgraph_sel + "`" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
   # Visualize data (5 min interval)
-  fig = px.line(
+  fig = getattr(px, chart_type)(
       df,
       x="date",
       y=col_viz,
@@ -189,8 +191,8 @@ if time_interval == '5 minutes':
   st.plotly_chart(fig, theme="streamlit", use_container_width=True)
 
 # 1 hour interval data
-if time_interval == '1 hour':
-  st.write("Hourly data of `" + col_viz + "` for subgraph `" + subgraph_sel + "`")
+if time_interval == '1 hour' and chart_type != 'pie':
+  st.write("Hourly data of `" + col_viz + "` for subgraph `" + subgraph_sel + "`" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
   
   def truncate_date(date):
     date = date.replace(minute=0, second=0)
@@ -206,7 +208,7 @@ if time_interval == '1 hour':
   # apply proper transformation based on variable of choice
   if col_viz == 'query_count':
     # visualize
-    fig = px.line(
+    fig = getattr(px, chart_type)(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).query_count.sum().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -219,7 +221,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).query_count.sum().reset_index(name=col_viz))
   elif col_viz == 'total_query_fees':
     # visualize
-    fig = px.line(
+    fig = getattr(px, chart_type)(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).total_query_fees.sum().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -232,7 +234,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).total_query_fees.sum().reset_index(name=col_viz))
   elif col_viz == 'num_indexer_200_responses':
     # visualize
-    fig = px.line(
+    fig = getattr(px, chart_type)(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).num_indexer_200_responses.sum().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -245,7 +247,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).num_indexer_200_responses.sum().reset_index(name=col_viz))
   elif col_viz == 'max_indexer_blocks_behind':
     # visualize
-    fig = px.line(
+    fig = getattr(px, chart_type)(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_blocks_behind.max().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -258,7 +260,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_blocks_behind.max().reset_index(name=col_viz))
   elif col_viz == 'max_indexer_latency':
     # visualize
-    fig = px.line(
+    fig = getattr(px, chart_type)(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_latency.max().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -271,7 +273,7 @@ if time_interval == '1 hour':
     st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_latency.max().reset_index(name=col_viz))
   elif col_viz == 'max_query_fee':
     # visualize
-    fig = px.line(
+    fig = getattr(px, chart_type)(
       data_viz.groupby([data_viz['hour'], 'indexer_url']).max_query_fee.max().reset_index(name=col_viz),
       x="hour",
       y=col_viz,
@@ -285,4 +287,12 @@ if time_interval == '1 hour':
   else:
     st.write('still adding this metric in summarized hourly data')
 
+if chart_type == 'pie':
+  if col_viz == 'query_count' or col_viz == 'num_indexer_200_responses' or col_viz == 'total_query_fees':
+    fig = px.pie(df, values=col_viz, names='indexer_url', title=col_viz + " by indexer url from " + str(df['date'].min()) + " to " + str(df['date'].max()))
+    # add labels inside (commented out for now)
+    #fig.update_traces(textposition='inside', textinfo='percent+label')
+    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+  else:
+    st.write('column not compatible with pie chart - please select a different column to visualize')
 
