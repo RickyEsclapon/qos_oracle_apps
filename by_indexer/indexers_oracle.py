@@ -66,9 +66,9 @@ indexers = pd.DataFrame(json_data['data']['indexers'])
 # find index of datanexus as default example for selection
 default_indexer = int(indexers["id"].str.find("0x87eba079059b75504c734820d6cf828476754b83")[lambda x : x != -1].index[0])
 # choose indexer
-indexer_sel = st.selectbox('Select Indexer',indexers['id'], index = default_indexer)
-
-nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 10000, 1000)
+with st.sidebar:
+  indexer_sel = st.selectbox('Select Indexer',indexers['id'], index = default_indexer)
+  nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 10000, 1000)
 
 # initialize text
 t = st.empty()
@@ -143,21 +143,23 @@ def convert_df(df):
 csv = convert_df(df)
 # show button
 st.download_button(
-    label="Download data as CSV",
+    label="Download full data as CSV",
     data=csv,
     file_name='indexer_data.csv',
     mime='text/csv',
 )
 
 # Column to visualize
-col_viz = st.selectbox('Which column do you want to visualize?', 
+with st.sidebar:
+  col_viz = st.selectbox('Which column do you want to visualize?', 
                           ('query_count','avg_indexer_blocks_behind','avg_indexer_latency_ms',
                           'avg_query_fee','max_indexer_blocks_behind','max_indexer_latency_ms',
                           'max_query_fee','num_indexer_200_responses','proportion_indexer_200_responses',
                           'query_count',#'stdev_indexer_latency_ms',
                           'total_query_fees'))
 # time interval
-time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
+with st.sidebar:
+  time_interval = st.selectbox('Choose a time interval for visualization', ('1 hour', '5 minutes'))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
