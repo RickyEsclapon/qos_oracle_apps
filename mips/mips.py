@@ -64,17 +64,15 @@ subgraphs_info['ipfsHash'] = ipfs_hash_values
 del subgraphs_info['versions']
 
 # Markdown title
-st.title('Gateway QoS Oracle by Subgraph')
+st.title('MIPs Quality of Service')
 
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
 subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info['displayName'].notnull(), subgraphs_info['ipfsHash'])
 
 # find index of datanexus as default example for selection
-#default_subgraph = int(subgraphs_info["subgraph"].str.find("Connext Network - Gnosis")[lambda x : x != -1].index[0])
-default_subgraph = subgraphs_info.index[subgraphs_info['subgraph'] == "Connext Network - Gnosis"].tolist()[0]
+#default_subgraph = int(subgraphs_info["subgraph"].str.find("POAP Ethereum Mainnet")[lambda x : x != -1].index[0])
 # choose indexer
 with st.sidebar:
-  subgraph_sel = st.selectbox('Select Subgraph',subgraphs_info['subgraph'], index = default_subgraph)
   # number of rows to pull user input
   nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 10000, 1000)
 
@@ -86,8 +84,6 @@ def pull_data(nrows):
   df_list = []
   # Initialize the minimum end_epoch value to a very large number
   min_epoch = 999999999999999999
-  # figure out ipfs hash based on subgraph selected
-  subgraph_filter = subgraphs_info.loc[subgraphs_info['subgraph'] == subgraph_sel]['ipfsHash'].values[0]
   
   # Get data for the indexer (30k rows)
   for i in range(int(nrows/1000)):
@@ -95,7 +91,7 @@ def pull_data(nrows):
       t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
       # Get data for the indexer
       query = str('''{
-        indexerDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "'''+subgraph_filter+'''", end_epoch_lte: '''+str(min_epoch)+'''}, first: 1000){
+        indexerDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", end_epoch_lte: '''+str(min_epoch)+'''}, first: 1000){
           end_epoch
           indexer_url
           indexer_wallet
@@ -177,7 +173,7 @@ df[col_viz] = pd.to_numeric(df[col_viz])
 
 # 5 minute interval data
 if time_interval == '5 minutes' and chart_type != 'pie':
-  st.write("5 minute interval data of `" + col_viz + "` for subgraph `" + subgraph_sel + "`" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
+  st.write("5 minute interval data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
   # Visualize data (5 min interval)
   fig = getattr(px, chart_type)(
       df,
@@ -193,7 +189,7 @@ if time_interval == '5 minutes' and chart_type != 'pie':
 
 # 1 hour interval data
 if time_interval == '1 hour' and chart_type != 'pie':
-  st.write("Hourly data of `" + col_viz + "` for subgraph `" + subgraph_sel + "`" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
+  st.write("Hourly data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
   
   def truncate_date(date):
     date = date.replace(minute=0, second=0)
