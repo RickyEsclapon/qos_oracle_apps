@@ -91,7 +91,7 @@ def pull_data(nrows):
       t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
       # Get data for the indexer
       query = str('''{
-        indexerDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", end_epoch_lte: '''+str(min_epoch)+'''}, first: 1000){
+        indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", end_epoch_lte: '''+str(min_epoch)+'''}, first: 1000){
           end_epoch
           indexer_url
           indexer_wallet
@@ -117,7 +117,7 @@ def pull_data(nrows):
       json_data = json.loads(r.text)
       # st.write(json_data)
       # Convert json into a dataframe
-      df = pd.DataFrame(json_data['data']['indexerDataPoints'])
+      df = pd.DataFrame(json_data['data']['indexerDailyDataPoints'])
       # Convert unix timestamp to date
       df['date'] = pd.to_datetime(df['end_epoch'],unit='s')
       # Update the minimum end_epoch value
