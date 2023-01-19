@@ -86,7 +86,7 @@ def pull_data(nrows):
   min_epoch = 999999999999999999
   
   # Get data for the indexer (30k rows)
-  for i in range(5):
+  for i in range(2):
       if i == 0:
         skip = 0
       else:
