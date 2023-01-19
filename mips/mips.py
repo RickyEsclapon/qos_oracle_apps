@@ -91,7 +91,6 @@ def pull_data(nrows):
         skip = 0
       else:
         skip = i*1000
-      st.write(range)
       # Display the updated text using the st.cache function
       t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
       # Get data for the indexer
@@ -168,125 +167,28 @@ with st.sidebar:
                           #'query_count',#'stdev_indexer_latency_ms',
                           'total_query_fees'))
   # time interval
-  time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
+  #time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
   # chart type
   chart_type = st.selectbox('Choose chart type', ('line', 'bar', 'area', 'scatter', 'pie'))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
 
-# 5 minute interval data
-if time_interval == '5 minutes' and chart_type != 'pie':
-  st.write("5 minute interval data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
-  # Visualize data (5 min interval)
+# 1 hour interval data
+if chart_type != 'pie':
+  st.write("Hourly data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
+  # visualize
   fig = getattr(px, chart_type)(
-      df,
-      x="date",
-      y=col_viz,
-      # size="pop",
-      color="indexer_url",
-      line_group="indexer_url",
-      hover_name="indexer_url"
-  )
+    df,
+    x="hour",
+    y=col_viz,
+    # size="pop",
+    color="indexer_url",
+    hover_name="indexer_url")
   # fig.update_layout(showlegend=False)
   st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-
-# 1 hour interval data
-if time_interval == '1 hour' and chart_type != 'pie':
-  st.write("Hourly data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
-  
-  def truncate_date(date):
-    date = date.replace(minute=0, second=0)
-    return date
-  
-  # Convert to hourly data - truncate minutes
-  df['hour'] = df['date'].apply(truncate_date)
-  # exclude min and max hours (may be incomplete data)
-  min_hour = df['hour'].min()
-  max_hour = df['hour'].max()
-  data_viz = df[df['hour'] != min_hour]
-  data_viz = data_viz[data_viz['hour'] != max_hour]
-  # apply proper transformation based on variable of choice
-  if col_viz == 'query_count':
-    # visualize
-    fig = getattr(px, chart_type)(
-      data_viz.groupby([data_viz['hour'], 'indexer_url']).query_count.sum().reset_index(name=col_viz),
-      x="hour",
-      y=col_viz,
-      # size="pop",
-      color="indexer_url",
-      hover_name="indexer_url")
-    # fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-    # table
-    st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).query_count.sum().reset_index(name=col_viz))
-  elif col_viz == 'total_query_fees':
-    # visualize
-    fig = getattr(px, chart_type)(
-      data_viz.groupby([data_viz['hour'], 'indexer_url']).total_query_fees.sum().reset_index(name=col_viz),
-      x="hour",
-      y=col_viz,
-      # size="pop",
-      color="indexer_url",
-      hover_name="indexer_url")
-    # fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-    # table
-    st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).total_query_fees.sum().reset_index(name=col_viz))
-  elif col_viz == 'num_indexer_200_responses':
-    # visualize
-    fig = getattr(px, chart_type)(
-      data_viz.groupby([data_viz['hour'], 'indexer_url']).num_indexer_200_responses.sum().reset_index(name=col_viz),
-      x="hour",
-      y=col_viz,
-      # size="pop",
-      color="indexer_url",
-      hover_name="indexer_url")
-    # fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-    # table
-    st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).num_indexer_200_responses.sum().reset_index(name=col_viz))
-  elif col_viz == 'max_indexer_blocks_behind':
-    # visualize
-    fig = getattr(px, chart_type)(
-      data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_blocks_behind.max().reset_index(name=col_viz),
-      x="hour",
-      y=col_viz,
-      # size="pop",
-      color="indexer_url",
-      hover_name="indexer_url")
-    # fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-    # table
-    st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_blocks_behind.max().reset_index(name=col_viz))
-  elif col_viz == 'max_indexer_latency':
-    # visualize
-    fig = getattr(px, chart_type)(
-      data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_latency.max().reset_index(name=col_viz),
-      x="hour",
-      y=col_viz,
-      # size="pop",
-      color="indexer_url",
-      hover_name="indexer_url")
-    # fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-    # table
-    st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_indexer_latency.max().reset_index(name=col_viz))
-  elif col_viz == 'max_query_fee':
-    # visualize
-    fig = getattr(px, chart_type)(
-      data_viz.groupby([data_viz['hour'], 'indexer_url']).max_query_fee.max().reset_index(name=col_viz),
-      x="hour",
-      y=col_viz,
-      # size="pop",
-      color="indexer_url",
-      hover_name="indexer_url")
-    # fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-    # table
-    st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_query_fee.max().reset_index(name=col_viz))
-  else:
-    st.write('still adding this metric in summarized hourly data')
+  # table
+  #st.dataframe(data_viz.groupby([data_viz['hour'], 'indexer_url']).max_query_fee.max().reset_index(name=col_viz))
 
 if chart_type == 'pie':
   if col_viz == 'query_count' or col_viz == 'num_indexer_200_responses' or col_viz == 'total_query_fees':
