@@ -111,7 +111,7 @@ def pull_data(nrows):
           }
       }''')
       # Set endpoint url
-      url = 'https://api.thegraph.com/subgraphs/name/juanmardefago/gateway-qos-oracle'
+      url = 'https://api.thegraph.com/subgraphs/id/QmdGTZpW5UtpJfi9fWF16YaoDaPCexQHqP4wvYapPeDi6t'
       r = requests.post(url, json={'query': query})
       # Load result into json
       json_data = json.loads(r.text)
