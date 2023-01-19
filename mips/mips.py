@@ -96,7 +96,7 @@ def pull_data():
       # Get data for the indexer
       query = str('''{
         indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", indexer_wallet: "0x4167eb613d784c910f5dc0f3f0515d61ec6ec8df"}, first: 1000, skip: '''+str(skip)+'''){
-          end_epoch
+          dayEnd
           indexer_url
           indexer_wallet
           subgraph_deployment_ipfs_hash
@@ -122,9 +122,9 @@ def pull_data():
       # Convert json into a dataframe
       df = pd.DataFrame(json_data['data']['indexerDailyDataPoints'])
       # Convert unix timestamp to date
-      df['date'] = pd.to_datetime(df['end_epoch'],unit='s')
+      df['date'] = pd.to_datetime(df['dayEnd'],unit='s')
       # Update the minimum end_epoch value
-      min_epoch = min(min_epoch, df['end_epoch'].astype(int).min())
+      min_epoch = min(min_epoch, df['dayEnd'].astype(int).min())
       # Add the dataframe to the list
       df_list.append(df)
   return df_list
