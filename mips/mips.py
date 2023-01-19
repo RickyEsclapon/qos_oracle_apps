@@ -72,9 +72,9 @@ subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info[
 # find index of datanexus as default example for selection
 #default_subgraph = int(subgraphs_info["subgraph"].str.find("POAP Ethereum Mainnet")[lambda x : x != -1].index[0])
 # choose indexer
-with st.sidebar:
+#with st.sidebar:
   # number of rows to pull user input
-  nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 3000, 1000)
+  #nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 3000, 1000)
 
 # initialize text of how many rows have been pulled
 t = st.empty()
@@ -95,7 +95,7 @@ def pull_data(nrows):
       t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
       # Get data for the indexer
       query = str('''{
-        indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV"}, first: 1000, skip: '''+str(skip)+'''){
+        indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", indexer_wallet: "0x4167eb613d784c910f5dc0f3f0515d61ec6ec8df"}, first: 1000, skip: '''+str(skip)+'''){
           end_epoch
           indexer_url
           indexer_wallet
@@ -140,7 +140,7 @@ df['subgraph'] = df['displayName'].where(df['displayName'].notnull(), df['subgra
 
 # show data (only if data is less than 15k rows)
 if df.shape[0] < 15000:
-  st.write("5 Minute Interval Data")
+  st.write("Daily Interval Data")
   st.dataframe(df.style.hide_index())
 
 # Download data button
