@@ -42,7 +42,7 @@ def get_subgraph_info(total_rows):
         r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet", json={'query': query})
         # Load result into json
         json_data = json.loads(r.text)
-        # st.write(json_data)
+        st.write(json_data)
         # Convert json into a dataframe
         df = pd.DataFrame(json_data['data']['subgraphs'])
         # Add the dataframe to the list
@@ -74,7 +74,7 @@ subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info[
 # choose indexer
 with st.sidebar:
   # number of rows to pull user input
-  nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 10000, 1000)
+  nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 3000, 1000)
 
 # initialize text of how many rows have been pulled
 t = st.empty()
