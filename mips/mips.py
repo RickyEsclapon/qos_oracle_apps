@@ -176,11 +176,11 @@ df[col_viz] = pd.to_numeric(df[col_viz])
 
 # 1 hour interval data
 if chart_type != 'pie':
-  st.write("Hourly data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
+  st.write("Daily data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['date'].min()) + " to " + str(df['date'].max()))
   # visualize
   fig = getattr(px, chart_type)(
     df,
-    x="hour",
+    x="date",
     y=col_viz,
     # size="pop",
     color="indexer_url",
