@@ -42,7 +42,7 @@ def get_subgraph_info(total_rows):
         r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet", json={'query': query})
         # Load result into json
         json_data = json.loads(r.text)
-        st.write(json_data)
+        #st.write(json_data)
         # Convert json into a dataframe
         df = pd.DataFrame(json_data['data']['subgraphs'])
         # Add the dataframe to the list
@@ -86,12 +86,17 @@ def pull_data(nrows):
   min_epoch = 999999999999999999
   
   # Get data for the indexer (30k rows)
-  for i in range(int(nrows/1000)):
+  for i in range(5):
+      if i == 0:
+        skip = 0
+      else:
+        skip = i*1000
+      st.write(range)
       # Display the updated text using the st.cache function
       t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
       # Get data for the indexer
       query = str('''{
-        indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", end_epoch_lte: '''+str(min_epoch)+'''}, first: 1000){
+        indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV"}, first: 1000, skip: '''+str(skip)+'''){
           end_epoch
           indexer_url
           indexer_wallet
@@ -106,7 +111,6 @@ def pull_data(nrows):
           proportion_indexer_200_responses
           query_count
           start_epoch
-          stdev_indexer_latency_ms
           total_query_fees
           }
       }''')
@@ -115,7 +119,7 @@ def pull_data(nrows):
       r = requests.post(url, json={'query': query})
       # Load result into json
       json_data = json.loads(r.text)
-      # st.write(json_data)
+      #st.write(json_data)
       # Convert json into a dataframe
       df = pd.DataFrame(json_data['data']['indexerDailyDataPoints'])
       # Convert unix timestamp to date
