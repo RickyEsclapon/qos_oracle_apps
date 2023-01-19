@@ -169,7 +169,7 @@ with st.sidebar:
   # time interval
   #time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
   # chart type
-  chart_type = st.selectbox('Choose chart type', ('line', 'bar', 'area', 'scatter', 'pie'))
+  chart_type = st.selectbox('Choose chart type', ('bar', 'line', 'area', 'scatter', 'pie'))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
