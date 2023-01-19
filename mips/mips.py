@@ -79,7 +79,7 @@ subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info[
 # initialize text of how many rows have been pulled
 t = st.empty()
 @st.cache(suppress_st_warning=True)
-def pull_data(nrows):
+def pull_data():
   # Initialize an empty list to store the dataframes
   df_list = []
   # Initialize the minimum end_epoch value to a very large number
@@ -129,7 +129,7 @@ def pull_data(nrows):
       df_list.append(df)
   return df_list
 # pull data
-df_list = pull_data(nrows)
+df_list = pull_data()
 # Union the dataframes into a single dataframe
 df = pd.concat(df_list)
 
