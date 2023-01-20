@@ -114,7 +114,7 @@ def pull_data():
           }
       }''')
       # Set endpoint url
-      url = 'https://api.thegraph.com/subgraphs/id/QmVCub6KrGUCGaBGZJatw96KHeisJdy8pDbZJdV4z3icg4'
+      url = 'https://api.thegraph.com/subgraphs/id/QmdGTZpW5UtpJfi9fWF16YaoDaPCexQHqP4wvYapPeDi6t'
       r = requests.post(url, json={'query': query})
       # Load result into json
       json_data = json.loads(r.text)
