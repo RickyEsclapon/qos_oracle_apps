@@ -6,6 +6,10 @@ import json
 from streamlit_autorefresh import st_autorefresh
 import plotly.express as px
 
+# get indexer query parameter from url if it exists
+query_params = st.experimental_get_query_params()
+
+
 # Automatically refresh app every 5 minutes - stops after 25 times
 count = st_autorefresh(interval=300000, limit=25, key="fizzbuzzcounter")
 
@@ -205,7 +209,18 @@ if chart_type == 'pie':
 
 st.write('## Specific Indexer')
 
-indexer_filter = st.selectbox('Which indexer do you want to visualize?', df['indexer_wallet'].drop_duplicates().tolist())
+# set default indexer from url
+indexer_default = query_params["indexer"][0] if "indexer" in query_params else 0
+indexers_list = df['indexer_wallet'].drop_duplicates().tolist()
+# if url selection exists then make it the default (by being first option of the list)
+if indexer_default != 0:
+  # make first option the one from url
+  indexers_list.insert(0,indexer_default)
+  indexer_filter = st.selectbox('Which indexer do you want to visualize?', indexers_list)
+else:
+  indexer_filter = st.selectbox('Which indexer do you want to visualize?', indexers_list)
+
+
 
 # Get data for the indexer
 query = str('''{
@@ -258,10 +273,9 @@ csvtwo = convert_df(indexer_df)
 st.download_button(
     label="Download indexer data as CSV",
     data=csvtwo,
-    file_name='subgraph_indexer_data'+indexer_filter+'.csv',
+    file_name='subgraph_indexer_data_'+indexer_filter+'.csv',
     mime='text/csv',
 )
-
 
 
 st.write('### Visualization - Specific Indexer')
@@ -276,7 +290,7 @@ col_viz_two = st.selectbox('Which column do you want to visualize?',
 # time interval
 #time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
 # chart type
-chart_type_two = st.selectbox('Choose chart type', ('bar', 'line', 'area', 'scatter', 'pie'), key = 1112)
+chart_type_two = st.selectbox('Choose chart type', ('line', 'bar', 'area', 'scatter', 'pie'))
 
 st.write("Daily data of `" + col_viz_two + "` for subgraph Connext Network - Gnosis" + " from " + str(indexer_df['day_end'].min()) + " to " + str(indexer_df['day_end'].max()))
                           
@@ -305,3 +319,13 @@ if chart_type_two == 'pie':
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
   else:
     st.write('column not compatible with pie chart - please select a different column to visualize')
+
+
+
+
+
+
+
+
+
+
