@@ -96,7 +96,7 @@ def pull_data(nrows):
       else:
         skip = i*1000
       # Display the updated text using the st.cache function
-      t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
+      #t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
       # Get data for the indexer
       query = str('''{
         indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV"}, first: 1000, skip: '''+str(skip)+'''){
