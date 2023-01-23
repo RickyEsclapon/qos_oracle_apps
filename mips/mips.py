@@ -100,6 +100,7 @@ def pull_data(nrows):
       # Get data for the indexer
       query = str('''{
         indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV"}, first: 1000, skip: '''+str(skip)+'''){
+          dayStart
           dayEnd
           indexer_url
           indexer_wallet
@@ -126,9 +127,9 @@ def pull_data(nrows):
       # Convert json into a dataframe
       df = pd.DataFrame(json_data['data']['indexerDailyDataPoints'])
       # Convert unix timestamp to date
-      df['day_end'] = pd.to_datetime(df['dayEnd'],unit='s')
+      df['day_start'] = pd.to_datetime(df['dayStart'],unit='s')
       # Update the minimum end_epoch value
-      min_epoch = min(min_epoch, df['dayEnd'].astype(int).min())
+      min_epoch = min(min_epoch, df['dayStart'].astype(int).min())
       # Add the dataframe to the list
       df_list.append(df)
   return df_list
@@ -143,11 +144,11 @@ df = pd.merge(left=df, right=subgraphs_info, left_on='subgraph_deployment_ipfs_h
 df['subgraph'] = df['displayName'].where(df['displayName'].notnull(), df['subgraph_deployment_ipfs_hash'])
 
 # only keep select columns
-df = df[['subgraph', 'day_end', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
+df = df[['subgraph', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
 
 # show data (only if data is less than 15k rows)
 if df.shape[0] < 15000:
-  st.write("Daily Interval Data")
+  st.write("Daily Interval Data (All Indexers)")
   st.dataframe(df.style.hide_index())
 
 # Download data button
@@ -178,7 +179,7 @@ col_viz = st.selectbox('Which column do you want to visualize?',
 # chart type
 chart_type = st.selectbox('Choose chart type', ('bar', 'line', 'area', 'scatter', 'pie'))
 
-st.write("Daily data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['day_end'].min()) + " to " + str(df['day_end'].max()))
+st.write("Daily data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['day_start'].min()) + " to " + str(df['day_start'].max()))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
@@ -187,7 +188,7 @@ df[col_viz] = pd.to_numeric(df[col_viz])
 if chart_type != 'pie':
   fig = getattr(px, chart_type)(
     df,
-    x="day_end",
+    x="day_start",
     y=col_viz,
     # size="pop",
     color="indexer_url",
@@ -199,7 +200,7 @@ if chart_type != 'pie':
 
 if chart_type == 'pie':
   if col_viz == 'query_count' or col_viz == 'num_indexer_200_responses' or col_viz == 'total_query_fees':
-    fig = px.pie(df, values=col_viz, names='indexer_url', title=col_viz + " by indexer url from " + str(df['day_end'].min()) + " to " + str(df['day_end'].max()))
+    fig = px.pie(df, values=col_viz, names='indexer_url', title=col_viz + " by indexer url from " + str(df['day_start'].min()) + " to " + str(df['day_start'].max()))
     # add labels inside (commented out for now)
     #fig.update_traces(textposition='inside', textinfo='percent+label')
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
@@ -225,6 +226,7 @@ else:
 # Get data for the indexer
 query = str('''{
   indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", indexer_wallet: "'''+indexer_filter+'''"}, first: 1000){
+    dayStart
     dayEnd
     indexer_url
     indexer_wallet
@@ -251,7 +253,7 @@ json_data = json.loads(r.text)
 # Convert json into a dataframe
 indexer_df = pd.DataFrame(json_data['data']['indexerDailyDataPoints'])
 # Convert unix timestamp to date
-indexer_df['day_end'] = pd.to_datetime(indexer_df['dayEnd'],unit='s')
+indexer_df['day_start'] = pd.to_datetime(indexer_df['dayStart'],unit='s')
 
 
 # Join subgraphs_info into new data
@@ -260,7 +262,7 @@ indexer_df = pd.merge(left=indexer_df, right=subgraphs_info, left_on='subgraph_d
 indexer_df['subgraph'] = indexer_df['displayName'].where(indexer_df['displayName'].notnull(), indexer_df['subgraph_deployment_ipfs_hash'])
 
 # only keep select columns
-indexer_df = indexer_df[['subgraph', 'day_end', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
+indexer_df = indexer_df[['subgraph', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
 
 # show data:
 st.write("Daily Interval Data for Indexer: " + indexer_filter)
@@ -292,7 +294,7 @@ col_viz_two = st.selectbox('Which column do you want to visualize?',
 # chart type
 chart_type_two = st.selectbox('Choose chart type', ('line', 'bar', 'area', 'scatter', 'pie'))
 
-st.write("Daily data of `" + col_viz_two + "` for subgraph Connext Network - Gnosis" + " from " + str(indexer_df['day_end'].min()) + " to " + str(indexer_df['day_end'].max()))
+st.write("Daily data of `" + col_viz_two + "` for subgraph Connext Network - Gnosis" + " from " + str(indexer_df['day_start'].min()) + " to " + str(indexer_df['day_start'].max()))
                           
 # Convert column to numeric
 indexer_df[col_viz_two] = pd.to_numeric(indexer_df[col_viz_two])
@@ -301,7 +303,7 @@ indexer_df[col_viz_two] = pd.to_numeric(indexer_df[col_viz_two])
 if chart_type_two != 'pie':
   fig = getattr(px, chart_type_two)(
     indexer_df,
-    x="day_end",
+    x="day_start",
     y=col_viz_two,
     # size="pop",
     color="indexer_url",
@@ -313,7 +315,7 @@ if chart_type_two != 'pie':
 
 if chart_type_two == 'pie':
   if col_viz_two == 'query_count' or col_viz_two == 'num_indexer_200_responses' or col_viz_two == 'total_query_fees':
-    fig = px.pie(indexer_df, values=col_viz_two, names='indexer_url', title=col_viz_two + " by indexer url from " + str(indexer_df['day_end'].min()) + " to " + str(indexer_df['day_end'].max()))
+    fig = px.pie(indexer_df, values=col_viz_two, names='indexer_url', title=col_viz_two + " by indexer url from " + str(indexer_df['day_start'].min()) + " to " + str(indexer_df['day_start'].max()))
     # add labels inside (commented out for now)
     #fig.update_traces(textposition='inside', textinfo='percent+label')
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
