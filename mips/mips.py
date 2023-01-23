@@ -79,14 +79,14 @@ subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info[
 # initialize text of how many rows have been pulled
 t = st.empty()
 @st.cache(suppress_st_warning=True)
-def pull_data():
+def pull_data(nrows):
   # Initialize an empty list to store the dataframes
   df_list = []
   # Initialize the minimum end_epoch value to a very large number
   min_epoch = 999999999999999999
   
   # Get data for the indexer (30k rows)
-  for i in range(1):
+  for i in range(int(nrows/1000)):
       if i == 0:
         skip = 0
       else:
@@ -129,7 +129,7 @@ def pull_data():
       df_list.append(df)
   return df_list
 # pull data
-df_list = pull_data()
+df_list = pull_data(5000)
 # Union the dataframes into a single dataframe
 df = pd.concat(df_list)
 
