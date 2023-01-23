@@ -9,6 +9,26 @@ import plotly.express as px
 # get indexer query parameter from url if it exists
 query_params = st.experimental_get_query_params()
 
+import base64
+def add_bg_from_local(image_file):
+    with open(image_file, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read())
+    st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url(data:image/{"png"};base64,{encoded_string.decode()});
+        background-size: cover
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
+# could uncomment here to add background image
+#add_bg_from_local('space.png')    
+
+# add MIPs logo
+st.image("https://thegraph.com/images/mips/mips.png")
 
 # Automatically refresh app every 5 minutes - stops after 25 times
 count = st_autorefresh(interval=300000, limit=25, key="fizzbuzzcounter")
@@ -68,7 +88,7 @@ subgraphs_info['ipfsHash'] = ipfs_hash_values
 del subgraphs_info['versions']
 
 # Markdown title
-st.title('MIPs Quality of Service')
+st.write('## Quality of Service Daily Data (All Indexers)')
 
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
 subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info['displayName'].notnull(), subgraphs_info['ipfsHash'])
@@ -148,7 +168,7 @@ df = df[['subgraph', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count'
 
 # show data (only if data is less than 15k rows)
 if df.shape[0] < 15000:
-  st.write("Daily Interval Data (All Indexers)")
+  #st.write("Daily Interval Data (All Indexers)")
   st.dataframe(df.style.hide_index())
 
 # Download data button
