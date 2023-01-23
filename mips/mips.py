@@ -129,7 +129,7 @@ def pull_data(nrows):
       df_list.append(df)
   return df_list
 # pull data
-df_list = pull_data(5000)
+df_list = pull_data(7000)
 # Union the dataframes into a single dataframe
 df = pd.concat(df_list)
 
