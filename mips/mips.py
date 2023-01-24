@@ -87,11 +87,35 @@ subgraphs_info['ipfsHash'] = ipfs_hash_values
 # Drop the versions column
 del subgraphs_info['versions']
 
-# Markdown title
-st.write('## Quality of Service Daily Data (All Indexers)')
+st.write('### Select Subgraph Below:')
+
+# select subgraph
+#subgraph_sel = st.selectbox('',subgraphs_info['displayName'])
+# number of rows to pull user input
+#nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 3000, 1000)
 
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
 subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info['displayName'].notnull(), subgraphs_info['ipfsHash'])
+
+# set default indexer from url
+subgraph_default = query_params["deployment"][0] if "deployment" in query_params else 0
+subgraphs_list = subgraphs_info['displayName'].drop_duplicates().tolist()
+# if url selection exists then make it the default (by being first option of the list)
+if subgraph_default != 0:
+  # make first option the one from url
+  subgraph_default = subgraphs_info.loc[subgraphs_info['ipfsHash'] == subgraph_default]['subgraph'].values[0]
+  subgraphs_list.insert(0,subgraph_default)
+  subgraph_sel = st.selectbox('', subgraphs_list)
+else:
+  subgraph_sel = st.selectbox('', subgraphs_list)
+
+# figure out ipfs hash based on subgraph selected
+subgraph_filter = subgraphs_info.loc[subgraphs_info['subgraph'] == subgraph_sel]['ipfsHash'].values[0]
+
+
+# Markdown title
+st.write('## Quality of Service Daily Data (All Indexers)')
+
 
 # find index of datanexus as default example for selection
 #default_subgraph = int(subgraphs_info["subgraph"].str.find("POAP Ethereum Mainnet")[lambda x : x != -1].index[0])
@@ -108,7 +132,6 @@ def pull_data(nrows):
   df_list = []
   # Initialize the minimum end_epoch value to a very large number
   min_epoch = 999999999999999999
-  
   # Get data for the indexer (30k rows)
   for i in range(int(nrows/1000)):
       if i == 0:
@@ -116,10 +139,10 @@ def pull_data(nrows):
       else:
         skip = i*1000
       # Display the updated text using the st.cache function
-      #t.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
+      #st.markdown(str("#### Now pulled " + str(i*1+1) + ",000 rows from subgraph"))
       # Get data for the indexer
       query = str('''{
-        indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV"}, first: 1000, skip: '''+str(skip)+'''){
+        indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "'''+subgraph_filter+'''"}, first: 1000, skip: '''+str(skip)+'''){
           dayStart
           dayEnd
           indexer_url
@@ -154,7 +177,10 @@ def pull_data(nrows):
       df_list.append(df)
   return df_list
 # pull data
-df_list = pull_data(6000)
+if subgraph_filter == "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV": #special case for Gnosis subgraph with a ton of indexers
+  df_list = pull_data(6000)
+else:
+  df_list = pull_data(1000)
 # Union the dataframes into a single dataframe
 df = pd.concat(df_list)
 
@@ -237,15 +263,14 @@ indexers_list = df['indexer_wallet'].drop_duplicates().tolist()
 if indexer_default != 0:
   # make first option the one from url
   indexers_list.insert(0,indexer_default)
-  indexer_filter = st.selectbox('Which indexer do you want to visualize?', indexers_list)
+  indexer_filter = st.selectbox('Which indexer do you want to visualize? This list is specific to the indexers on the selected subgraph', indexers_list)
 else:
-  indexer_filter = st.selectbox('Which indexer do you want to visualize?', indexers_list)
-
+  indexer_filter = st.selectbox('Which indexer do you want to visualize? This list is specific to the indexers on the selected subgraph', indexers_list)
 
 
 # Get data for the indexer
 query = str('''{
-  indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "QmXWbpH76U6TM4teRNMZzog2ismx577CkH7dzn1Nw69FcV", indexer_wallet: "'''+indexer_filter+'''"}, first: 1000){
+  indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "'''+subgraph_filter+'''", indexer_wallet: "'''+indexer_filter+'''"}, first: 1000){
     dayStart
     dayEnd
     indexer_url
@@ -285,7 +310,7 @@ indexer_df['subgraph'] = indexer_df['displayName'].where(indexer_df['displayName
 indexer_df = indexer_df[['subgraph', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
 
 # show data:
-st.write("Daily Interval Data for Indexer: " + indexer_filter)
+#st.write("Daily Interval Data for Indexer: " + indexer_filter)
 st.dataframe(indexer_df.style.hide_index())
 
 # Download data button
