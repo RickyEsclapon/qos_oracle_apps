@@ -126,7 +126,7 @@ st.write('## Quality of Service Daily Data (All Indexers)')
 
 # initialize text of how many rows have been pulled
 t = st.empty()
-@st.cache(suppress_st_warning=True)
+#@st.cache(suppress_st_warning=True)
 def pull_data(nrows):
   # Initialize an empty list to store the dataframes
   df_list = []
@@ -198,7 +198,7 @@ if df.shape[0] < 15000:
   st.dataframe(df.style.hide_index())
 
 # Download data button
-@st.cache
+#@st.cache
 def convert_df(df):
     # Caches the conversion to prevent computation on every rerun
     return df.to_csv().encode('utf-8')
