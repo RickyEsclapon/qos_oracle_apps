@@ -6,6 +6,9 @@ import json
 from streamlit_autorefresh import st_autorefresh
 import plotly.express as px
 
+auth_token='sixtyninefourtwenty'
+hed = {'Authorization': 'Bearer ' + auth_token}
+
 # get indexer query parameter from url if it exists
 query_params = st.experimental_get_query_params()
 
@@ -33,7 +36,12 @@ st.image("https://thegraph.com/images/mips/mips.png")
 # Automatically refresh app every 5 minutes - stops after 25 times
 count = st_autorefresh(interval=300000, limit=25, key="fizzbuzzcounter")
 
-@st.cache(allow_output_mutation=True)
+st.write('### Choose Traffic Source Below:')
+
+gateway_sel = st.selectbox('mainnet/testnet deployments', ["mainnet", "testnet"])
+
+chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "avalanche"])
+
 def get_subgraph_info(total_rows):
     # Initialize an empty list to store the results
     results = []
@@ -44,31 +52,22 @@ def get_subgraph_info(total_rows):
         # Set the GraphQL query
         query = '''
         query {
-          subgraphs(
-            where: {active: true}
-            first: 1000
-            orderBy: signalledTokens
-            orderDirection: desc
-            skip: ''' + str(i*1000) + '''
-          ) {
-            displayName
-            signalledTokens
-            creatorAddress
-            versions(first: 1, orderBy: createdAt, orderDirection: desc) {
-              subgraphDeployment {
-                ipfsHash
-              }
-            }
+          subgraphDeployments(where: {network: "'''+chain_sel+'''", activeSubgraphCount_gt: 0, originalName_not: null}, first:1000, orderBy: stakedTokens, orderDirection: desc) {
+            ipfsHash
+            originalName
           }
         }
         '''
         # Send the GraphQL request
-        r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet", json={'query': query})
+        if gateway_sel == "testnet":
+          r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-goerli", json={'query': query})
+        else:
+          r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet", json={'query': query})
         # Load result into json
         json_data = json.loads(r.text)
         #st.write(json_data)
         # Convert json into a dataframe
-        df = pd.DataFrame(json_data['data']['subgraphs'])
+        df = pd.DataFrame(json_data['data']['subgraphDeployments'])
         # Add the dataframe to the list
         results.append(df)
     # Union the dataframes into a single dataframe
@@ -76,41 +75,38 @@ def get_subgraph_info(total_rows):
     # Return the results
     return df
 # pull subgraphs info
-subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
-
-# Iterate through the data and extract the ipfsHash values
-ipfs_hash_values = []
-for i in subgraphs_info.index:
-  ipfs_hash_values.append(subgraphs_info['versions'][i][0]['subgraphDeployment']['ipfsHash'])
-# Set the ipfsHash values as a new column in the data structure
-subgraphs_info['ipfsHash'] = ipfs_hash_values
-# Drop the versions column
-del subgraphs_info['versions']
+subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['originalName','ipfsHash'])
 
 st.write('### Select Subgraph Below:')
 
 # select subgraph
-#subgraph_sel = st.selectbox('',subgraphs_info['displayName'])
+#subgraph_sel = st.selectbox('',subgraphs_info['originalName'])
 # number of rows to pull user input
 #nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 3000, 1000)
 
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info['displayName'].notnull(), subgraphs_info['ipfsHash'])
+subgraphs_info['subgraph'] = subgraphs_info['originalName'].where(subgraphs_info['originalName'].notnull(), subgraphs_info['ipfsHash'])
 
 # set default indexer from url
 subgraph_default = query_params["deployment"][0] if "deployment" in query_params else 0
-subgraphs_list = subgraphs_info['displayName'].drop_duplicates().tolist()
+subgraphs_list = subgraphs_info['originalName'].drop_duplicates().tolist()
 # if url selection exists then make it the default (by being first option of the list)
 if subgraph_default != 0:
   # make first option the one from url
   subgraph_default = subgraphs_info.loc[subgraphs_info['ipfsHash'] == subgraph_default]['subgraph'].values[0]
   subgraphs_list.insert(0,subgraph_default)
-  subgraph_sel = st.selectbox('', subgraphs_list)
+  subgraph_sel = st.selectbox('subgraph name', subgraphs_list)
 else:
-  subgraph_sel = st.selectbox('', subgraphs_list)
+  subgraph_sel = st.selectbox('subgraph name', subgraphs_list)
 
 # figure out ipfs hash based on subgraph selected
 subgraph_filter = subgraphs_info.loc[subgraphs_info['subgraph'] == subgraph_sel]['ipfsHash'].values[0]
+
+# optionally select ipfs hash manually
+ipfs_hash_option = st.text_input("optional: enter your own ipfs hash", "")
+
+if ipfs_hash_option != '':
+  subgraph_filter = ipfs_hash_option
 
 
 # Markdown title
@@ -143,6 +139,8 @@ def pull_data(nrows):
       # Get data for the indexer
       query = str('''{
         indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "'''+subgraph_filter+'''"}, first: 1000, skip: '''+str(skip)+'''){
+          gateway_id
+          chain_id
           dayStart
           dayEnd
           indexer_url
@@ -162,8 +160,8 @@ def pull_data(nrows):
           }
       }''')
       # Set endpoint url
-      url = 'https://api.thegraph.com/subgraphs/id/QmVCub6KrGUCGaBGZJatw96KHeisJdy8pDbZJdV4z3icg4'
-      r = requests.post(url, json={'query': query})
+      url = 'https://query.stakesquid.com/subgraphs/id/QmSjGmndTgvJYw4zqQYmWkVSG7dunEsiQaCtCqdc2kb6ee'
+      r = requests.post(url, json={'query': query}, headers=hed)
       # Load result into json
       json_data = json.loads(r.text)
       #st.write(json_data)
@@ -187,10 +185,10 @@ df = pd.concat(df_list)
 # Join subgraphs_info into new data
 df = pd.merge(left=df, right=subgraphs_info, left_on='subgraph_deployment_ipfs_hash', right_on='ipfsHash', how='inner')
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-df['subgraph'] = df['displayName'].where(df['displayName'].notnull(), df['subgraph_deployment_ipfs_hash'])
+df['subgraph'] = df['originalName'].where(df['originalName'].notnull(), df['subgraph_deployment_ipfs_hash'])
 
 # only keep select columns
-df = df[['subgraph', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
+df = df[['subgraph', 'subgraph_deployment_ipfs_hash', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
 
 # show data (only if data is less than 15k rows)
 if df.shape[0] < 15000:
@@ -267,7 +265,7 @@ if indexer_default != 0:
 else:
   indexer_filter = st.selectbox('Which indexer do you want to visualize? This list is specific to the indexers on the selected subgraph', indexers_list)
 
-
+st.write(subgraph_filter)
 # Get data for the indexer
 query = str('''{
   indexerDailyDataPoints(orderBy: end_epoch, orderDirection: desc, where:{subgraph_deployment_ipfs_hash: "'''+subgraph_filter+'''", indexer_wallet: "'''+indexer_filter+'''"}, first: 1000){
@@ -290,8 +288,8 @@ query = str('''{
     }
 }''')
 # Set endpoint url
-url = 'https://api.thegraph.com/subgraphs/id/QmVCub6KrGUCGaBGZJatw96KHeisJdy8pDbZJdV4z3icg4'
-r = requests.post(url, json={'query': query})
+url = 'https://query.stakesquid.com/subgraphs/id/QmSjGmndTgvJYw4zqQYmWkVSG7dunEsiQaCtCqdc2kb6ee'
+r = requests.post(url, json={'query': query}, headers=hed)
 # Load result into json
 json_data = json.loads(r.text)
 #st.write(json_data)
@@ -304,10 +302,10 @@ indexer_df['day_start'] = pd.to_datetime(indexer_df['dayStart'],unit='s')
 # Join subgraphs_info into new data
 indexer_df = pd.merge(left=indexer_df, right=subgraphs_info, left_on='subgraph_deployment_ipfs_hash', right_on='ipfsHash', how='inner')
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-indexer_df['subgraph'] = indexer_df['displayName'].where(indexer_df['displayName'].notnull(), indexer_df['subgraph_deployment_ipfs_hash'])
+indexer_df['subgraph'] = indexer_df['originalName'].where(indexer_df['originalName'].notnull(), indexer_df['subgraph_deployment_ipfs_hash'])
 
 # only keep select columns
-indexer_df = indexer_df[['subgraph', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
+indexer_df = indexer_df[['subgraph', 'subgraph_deployment_ipfs_hash', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
 
 # show data:
 #st.write("Daily Interval Data for Indexer: " + indexer_filter)
