@@ -38,7 +38,9 @@ count = st_autorefresh(interval=300000, limit=25, key="fizzbuzzcounter")
 
 st.write('### Choose Traffic Source Below:')
 
-gateway_sel = st.selectbox('mainnet/testnet deployments', ["mainnet", "testnet"])
+gateway_sel = st.selectbox('mainnet/testnet deployments', ["mainnet", "goerli testnet"])
+if gateway_sel == 'goerli testnet':
+  gateway_sel = 'testnet'
 
 chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "celo", "avalanche"])
 
@@ -212,12 +214,20 @@ st.download_button(
 
 st.write('### Visualization - All Indexers')
 
-col_viz = st.selectbox('Which column do you want to visualize?', 
-                        ('query_count','avg_indexer_blocks_behind','avg_indexer_latency_ms',
-                        'avg_query_fee','max_indexer_blocks_behind','max_indexer_latency_ms',
-                        'max_query_fee','num_indexer_200_responses','proportion_indexer_200_responses',
-                        #'query_count',#'stdev_indexer_latency_ms',
-                        'total_query_fees'))
+if gateway_sel == 'mainnet':
+  col_viz = st.selectbox('Which column do you want to visualize?', 
+                          ('query_count','avg_indexer_blocks_behind','avg_indexer_latency_ms',
+                          'avg_query_fee','max_indexer_blocks_behind','max_indexer_latency_ms',
+                          'max_query_fee','num_indexer_200_responses','proportion_indexer_200_responses',
+                          #'query_count',#'stdev_indexer_latency_ms',
+                          'total_query_fees'))
+else:
+  col_viz = st.selectbox('Which column do you want to visualize?', 
+                          ('avg_indexer_blocks_behind','query_count','avg_indexer_latency_ms',
+                          'avg_query_fee','max_indexer_blocks_behind','max_indexer_latency_ms',
+                          'max_query_fee','num_indexer_200_responses','proportion_indexer_200_responses',
+                          #'query_count',#'stdev_indexer_latency_ms',
+                          'total_query_fees'))
 # time interval
 #time_interval = st.selectbox('Choose a time interval', ('1 hour', '5 minutes'))
 # chart type
