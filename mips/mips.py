@@ -40,7 +40,7 @@ st.write('### Choose Traffic Source Below:')
 
 gateway_sel = st.selectbox('mainnet/testnet deployments', ["mainnet", "testnet"])
 
-chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "avalanche"])
+chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "celo", "avalanche"])
 
 def get_subgraph_info(total_rows):
     # Initialize an empty list to store the results
