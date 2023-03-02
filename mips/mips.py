@@ -162,7 +162,7 @@ def pull_data(nrows):
           }
       }''')
       # Set endpoint url
-      url = 'https://query.stakesquid.com/subgraphs/id/QmSjGmndTgvJYw4zqQYmWkVSG7dunEsiQaCtCqdc2kb6ee'
+      url = 'https://query.stakesquid.com/subgraphs/id/QmPTB2AcqkvcFvjgEzePfNFKbmaeJoVuh294nEA5pCWHYA'
       r = requests.post(url, json={'query': query}, headers=hed)
       # Load result into json
       json_data = json.loads(r.text)
@@ -298,7 +298,7 @@ query = str('''{
     }
 }''')
 # Set endpoint url
-url = 'https://query.stakesquid.com/subgraphs/id/QmSjGmndTgvJYw4zqQYmWkVSG7dunEsiQaCtCqdc2kb6ee'
+url = 'https://query.stakesquid.com/subgraphs/id/QmPTB2AcqkvcFvjgEzePfNFKbmaeJoVuh294nEA5pCWHYA'
 r = requests.post(url, json={'query': query}, headers=hed)
 # Load result into json
 json_data = json.loads(r.text)
@@ -374,7 +374,6 @@ if chart_type_two == 'pie':
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
   else:
     st.write('column not compatible with pie chart - please select a different column to visualize')
-
 
 
 
