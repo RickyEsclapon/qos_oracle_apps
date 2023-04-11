@@ -128,7 +128,7 @@ else:
 subgraph_filter = subgraphs_info.loc[subgraphs_info['subgraph'] == subgraph_sel]['ipfsHash'].values[0]
 
 # optionally select ipfs hash manually
-ipfs_hash_option = st.text_input("optional: enter your own ipfs hash", "")
+ipfs_hash_option = st.text_input("optional: enter your own ipfs hash (overrides subgraph display name filter)", "")
 
 if ipfs_hash_option != '':
   subgraph_filter = ipfs_hash_option
