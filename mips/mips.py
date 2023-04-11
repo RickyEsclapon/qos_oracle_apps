@@ -256,7 +256,7 @@ else:
 # chart type
 chart_type = st.selectbox('Choose chart type', ('bar', 'line', 'area', 'scatter', 'pie'))
 
-st.write("Daily data of `" + col_viz + "` for subgraph " df[displayName]" + " from " + str(df['day_start'].min()) + " to " + str(df['day_start'].max()))
+st.write("Daily data of `" + col_viz + "` for subgraph " + df[displayName] + " from " + str(df['day_start'].min()) + " to " + str(df['day_start'].max()))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
