@@ -54,9 +54,22 @@ def get_subgraph_info(total_rows):
         # Set the GraphQL query
         query = '''
         query {
-          subgraphDeployments(where: {network: "'''+chain_sel+'''", activeSubgraphCount_gt: 0, originalName_not: null}, first:1000, orderBy: stakedTokens, orderDirection: desc) {
-            ipfsHash
-            originalName
+          subgraphs(
+            where: {active: true}
+            network: "'''+chain_sel+'''"
+            first: 1000
+            orderBy: signalledTokens
+            orderDirection: desc
+            skip: ''' + str(i*1000) + '''
+          ) {
+            displayName
+            signalledTokens
+            creatorAddress
+            versions(first: 1, orderBy: createdAt, orderDirection: desc) {
+              subgraphDeployment {
+                ipfsHash
+              }
+            }
           }
         }
         '''
@@ -67,31 +80,41 @@ def get_subgraph_info(total_rows):
           r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet", json={'query': query})
         # Load result into json
         json_data = json.loads(r.text)
-        #st.write(json_data)
+        # st.write(json_data)
         # Convert json into a dataframe
-        df = pd.DataFrame(json_data['data']['subgraphDeployments'])
+        df = pd.DataFrame(json_data['data']['subgraphs'])
         # Add the dataframe to the list
         results.append(df)
+        
     # Union the dataframes into a single dataframe
     df = pd.concat(results)
     # Return the results
     return df
 # pull subgraphs info
-subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['originalName','ipfsHash'])
+subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
+
+# Iterate through the data and extract the ipfsHash values
+ipfs_hash_values = []
+for i in subgraphs_info.index:
+  ipfs_hash_values.append(subgraphs_info['versions'][i][0]['subgraphDeployment']['ipfsHash'])
+# Set the ipfsHash values as a new column in the data structure
+subgraphs_info['ipfsHash'] = ipfs_hash_values
+# Drop the versions column
+del subgraphs_info['versions']
 
 st.write('### Select Subgraph Below:')
 
 # select subgraph
-#subgraph_sel = st.selectbox('',subgraphs_info['originalName'])
+#subgraph_sel = st.selectbox('',subgraphs_info['displayName'])
 # number of rows to pull user input
 #nrows = st.slider('How many rows of data do you want to pull? One observation per subgraph every 5 minutes', 1000, 50000, 3000, 1000)
 
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-subgraphs_info['subgraph'] = subgraphs_info['originalName'].where(subgraphs_info['originalName'].notnull(), subgraphs_info['ipfsHash'])
+subgraphs_info['subgraph'] = subgraphs_info['displayName'].where(subgraphs_info['displayName'].notnull(), subgraphs_info['ipfsHash'])
 
 # set default indexer from url
 subgraph_default = query_params["deployment"][0] if "deployment" in query_params else 0
-subgraphs_list = subgraphs_info['originalName'].drop_duplicates().tolist()
+subgraphs_list = subgraphs_info['displayName'].drop_duplicates().tolist()
 # if url selection exists then make it the default (by being first option of the list)
 if subgraph_default != 0:
   # make first option the one from url
@@ -187,7 +210,7 @@ df = pd.concat(df_list)
 # Join subgraphs_info into new data
 df = pd.merge(left=df, right=subgraphs_info, left_on='subgraph_deployment_ipfs_hash', right_on='ipfsHash', how='inner')
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-df['subgraph'] = df['originalName'].where(df['originalName'].notnull(), df['subgraph_deployment_ipfs_hash'])
+df['subgraph'] = df['displayName'].where(df['displayName'].notnull(), df['subgraph_deployment_ipfs_hash'])
 
 # only keep select columns
 df = df[['subgraph', 'subgraph_deployment_ipfs_hash', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
@@ -312,7 +335,7 @@ indexer_df['day_start'] = pd.to_datetime(indexer_df['dayStart'],unit='s')
 # Join subgraphs_info into new data
 indexer_df = pd.merge(left=indexer_df, right=subgraphs_info, left_on='subgraph_deployment_ipfs_hash', right_on='ipfsHash', how='inner')
 # create column which takes subgraph name, but uses ipfs hash when it doesn't exist
-indexer_df['subgraph'] = indexer_df['originalName'].where(indexer_df['originalName'].notnull(), indexer_df['subgraph_deployment_ipfs_hash'])
+indexer_df['subgraph'] = indexer_df['displayName'].where(indexer_df['displayName'].notnull(), indexer_df['subgraph_deployment_ipfs_hash'])
 
 # only keep select columns
 indexer_df = indexer_df[['subgraph', 'subgraph_deployment_ipfs_hash', 'day_start', 'indexer_wallet', 'indexer_url', 'query_count', 'num_indexer_200_responses', 'proportion_indexer_200_responses', 'avg_indexer_latency_ms', 'avg_indexer_blocks_behind', 'avg_query_fee', 'max_indexer_latency_ms', 'max_indexer_blocks_behind', 'max_query_fee', 'total_query_fees']]
@@ -374,12 +397,4 @@ if chart_type_two == 'pie':
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
   else:
     st.write('column not compatible with pie chart - please select a different column to visualize')
-
-
-
-
-
-
-
-
 
