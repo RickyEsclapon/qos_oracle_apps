@@ -44,7 +44,7 @@ if gateway_sel == 'goerli testnet':
 
 chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "celo", "avalanche"])
 
-def get_subgraph_info(total_rows):
+def get_subgraph_info(total_rows, chain_sel):
     # Initialize an empty list to store the results
     results = []
     # Set the number of requests to make
@@ -91,7 +91,7 @@ def get_subgraph_info(total_rows):
     # Return the results
     return df
 # pull subgraphs info
-subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
+subgraphs_info = get_subgraph_info(1000, chain_sel).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
 
 # Iterate through the data and extract the ipfsHash values
 ipfs_hash_values = []
