@@ -6,9 +6,6 @@ import json
 from streamlit_autorefresh import st_autorefresh
 import plotly.express as px
 
-auth_token='sixtyninefourtwenty'
-hed = {'Authorization': 'Bearer ' + auth_token}
-
 # get indexer query parameter from url if it exists
 query_params = st.experimental_get_query_params()
 
@@ -38,13 +35,13 @@ count = st_autorefresh(interval=300000, limit=25, key="fizzbuzzcounter")
 
 st.write('### Choose Traffic Source Below:')
 
-gateway_sel = st.selectbox('mainnet/testnet deployments', ["mainnet", "goerli testnet"])
+gateway_sel = st.selectbox('deployment network', ["mainnet", "goerli testnet", "arbitrum"])
 if gateway_sel == 'goerli testnet':
   gateway_sel = 'testnet'
 
-chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "celo", "avalanche"])
+#chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "celo", "avalanche"])
 
-def get_subgraph_info(total_rows, chain_sel):
+def get_subgraph_info(total_rows):
     # Initialize an empty list to store the results
     results = []
     # Set the number of requests to make
@@ -56,7 +53,6 @@ def get_subgraph_info(total_rows, chain_sel):
         query {
           subgraphs(
             where: {active: true}
-            network: "'''+chain_sel+'''"
             first: 1000
             orderBy: signalledTokens
             orderDirection: desc
@@ -76,6 +72,8 @@ def get_subgraph_info(total_rows, chain_sel):
         # Send the GraphQL request
         if gateway_sel == "testnet":
           r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-goerli", json={'query': query})
+        elif gateway_sel == "arbitrum":
+          r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-arbitrum", json={'query': query})
         else:
           r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet", json={'query': query})
         # Load result into json
@@ -91,7 +89,7 @@ def get_subgraph_info(total_rows, chain_sel):
     # Return the results
     return df
 # pull subgraphs info
-subgraphs_info = get_subgraph_info(1000, chain_sel).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
+subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['displayName', 'signalledTokens', 'creatorAddress'])
 
 # Iterate through the data and extract the ipfsHash values
 ipfs_hash_values = []
@@ -128,15 +126,17 @@ else:
 subgraph_filter = subgraphs_info.loc[subgraphs_info['subgraph'] == subgraph_sel]['ipfsHash'].values[0]
 
 # optionally select ipfs hash manually
-ipfs_hash_option = st.text_input("optional: enter your own ipfs hash (overrides subgraph display name filter)", "")
+ipfs_hash_option = st.text_input("optional: enter your own ipfs hash", "")
 
 if ipfs_hash_option != '':
   subgraph_filter = ipfs_hash_option
 
 
+# Additional comments before data is displayed
+st.markdown('[View code on GitHub](https://github.com/RickyEsclapon/qos_oracle_apps/blob/main/mips/mips.py)')
+st.write("If you see an error for a given subgraph, that is likely because there hasn't been query volume on the subgraph since the [QoS Oracle](https://thegraph.com/hosted-service/subgraph/graphprotocol/gateway-mips-qos-oracle) was deployed.")
 # Markdown title
 st.write('## Quality of Service Daily Data (All Indexers)')
-
 
 # find index of datanexus as default example for selection
 #default_subgraph = int(subgraphs_info["subgraph"].str.find("POAP Ethereum Mainnet")[lambda x : x != -1].index[0])
@@ -185,8 +185,8 @@ def pull_data(nrows):
           }
       }''')
       # Set endpoint url
-      url = 'https://query.stakesquid.com/subgraphs/id/QmPTB2AcqkvcFvjgEzePfNFKbmaeJoVuh294nEA5pCWHYA'
-      r = requests.post(url, json={'query': query}, headers=hed)
+      url = 'https://api.thegraph.com/subgraphs/name/graphprotocol/gateway-mips-qos-oracle'
+      r = requests.post(url, json={'query': query})
       # Load result into json
       json_data = json.loads(r.text)
       #st.write(json_data)
@@ -256,7 +256,7 @@ else:
 # chart type
 chart_type = st.selectbox('Choose chart type', ('bar', 'line', 'area', 'scatter', 'pie'))
 
-st.write("Daily data of `" + col_viz + "` for subgraph " + subgraph_filter + " from " + str(df['day_start'].min()) + " to " + str(df['day_start'].max()))
+st.write("Daily data of `" + col_viz + "` for subgraph Connext Network - Gnosis" + " from " + str(df['day_start'].min()) + " to " + str(df['day_start'].max()))
                           
 # Convert column to numeric
 df[col_viz] = pd.to_numeric(df[col_viz])
@@ -321,8 +321,8 @@ query = str('''{
     }
 }''')
 # Set endpoint url
-url = 'https://query.stakesquid.com/subgraphs/id/QmPTB2AcqkvcFvjgEzePfNFKbmaeJoVuh294nEA5pCWHYA'
-r = requests.post(url, json={'query': query}, headers=hed)
+url = 'https://api.thegraph.com/subgraphs/name/graphprotocol/gateway-mips-qos-oracle'
+r = requests.post(url, json={'query': query})
 # Load result into json
 json_data = json.loads(r.text)
 #st.write(json_data)
@@ -397,4 +397,3 @@ if chart_type_two == 'pie':
     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
   else:
     st.write('column not compatible with pie chart - please select a different column to visualize')
-
