@@ -94,11 +94,19 @@ subgraphs_info = get_subgraph_info(1000).drop_duplicates(subset=['displayName', 
 # Iterate through the data and extract the ipfsHash values
 ipfs_hash_values = []
 for i in subgraphs_info.index:
-  ipfs_hash_values.append(subgraphs_info['versions'][i][0]['subgraphDeployment']['ipfsHash'])
+    try:
+        if len(subgraphs_info['versions'][i]) > 0:
+            ipfs_hash_values.append(subgraphs_info['versions'][i][0]['subgraphDeployment']['ipfsHash'])
+        else:
+            ipfs_hash_values.append(None) 
+    except IndexError:
+        ipfs_hash_values.append(None)  # Handling the IndexError
+
 # Set the ipfsHash values as a new column in the data structure
 subgraphs_info['ipfsHash'] = ipfs_hash_values
 # Drop the versions column
 del subgraphs_info['versions']
+
 
 st.write('### Select Subgraph Below:')
 
