@@ -42,13 +42,9 @@ if gateway_sel == 'goerli testnet':
 #chain_sel = st.selectbox('subgraph chain', ["mainnet", "gnosis", "arbitrum-one", "celo", "avalanche"])
 
 def get_subgraph_info(total_rows):
-    # Initialize an empty list to store the results
     results = []
-    # Set the number of requests to make
     num_requests = total_rows // 1000
-    # Make the GraphQL requests
     for i in range(num_requests):
-        # Set the GraphQL query
         query = '''
         query {
           subgraphs(
@@ -69,20 +65,30 @@ def get_subgraph_info(total_rows):
           }
         }
         '''
-        # Send the GraphQL request
+        # Determine the correct URL based on gateway selection
+        url = "https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet"
         if gateway_sel == "testnet":
-          r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-goerli", json={'query': query})
+            url = "https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-goerli"
         elif gateway_sel == "arbitrum":
-          r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-arbitrum", json={'query': query})
+            url = "https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-arbitrum"
+        
+        response = requests.post(url, json={'query': query})
+        
+        if response.status_code == 200:
+            json_data = response.json()
+            if 'data' in json_data and 'subgraphs' in json_data['data']:
+                df = pd.DataFrame(json_data['data']['subgraphs'])
+                results.append(df)
+            else:
+                print(f"Unexpected JSON structure: {json_data}")
         else:
-          r = requests.post("https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet", json={'query': query})
-        # Load result into json
-        json_data = json.loads(r.text)
-        # st.write(json_data)
-        # Convert json into a dataframe
-        df = pd.DataFrame(json_data['data']['subgraphs'])
-        # Add the dataframe to the list
-        results.append(df)
+            print(f"Request failed with status code {response.status_code}: {response.text}")
+        
+    if results:
+        df = pd.concat(results)
+        return df
+    else:
+        return pd.DataFrame()  # Return an empty DataFrame if no data was added to results
         
     # Union the dataframes into a single dataframe
     df = pd.concat(results)
